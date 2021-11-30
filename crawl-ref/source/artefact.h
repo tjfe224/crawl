@@ -7,6 +7,7 @@
 
 #include "artefact-prop-type.h"
 #include "unique-item-status-type.h"
+#include "art-data.func"
 
 #define ART_PROPERTIES ARTP_NUM_PROPERTIES
 

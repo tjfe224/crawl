@@ -107,98 +107,10 @@ bool melee_attack::handle_phase_attempted()
         // Unrands with secondary effects that can harm nearby friendlies.
         // Don't prompt for confirmation (and leak information about the
         // monster's position) if the player can't see the monster.
-        if (weapon && is_unrandom_artefact(*weapon, UNRAND_DEVASTATOR)
-            && you.can_see(*defender))
-        {
-
-            targeter_smite hitfunc(attacker, 1, 1, 1, false);
-            hitfunc.set_aim(defender->pos());
-
-            if (stop_attack_prompt(hitfunc, "attack", nullptr, nullptr,
-                                   defender->as_monster()))
-            {
-                cancel_attack = true;
-                return false;
-            }
-        }
-        else if (weapon &&
-                ((is_unrandom_artefact(*weapon, UNRAND_SINGING_SWORD)
-                  && !silenced(you.pos()))
-                 || is_unrandom_artefact(*weapon, UNRAND_VARIABILITY))
-                 && you.can_see(*defender))
-        {
-            targeter_radius hitfunc(&you, LOS_NO_TRANS);
-
-            if (stop_attack_prompt(hitfunc, "attack",
-                                   [](const actor *act)
-                                   {
-                                       return !god_protects(act->as_monster());
-                                   }, nullptr, defender->as_monster()))
-            {
-                cancel_attack = true;
-                return false;
-            }
-        }
-        else if (weapon && is_unrandom_artefact(*weapon, UNRAND_TORMENT)
-                 && you.can_see(*defender))
-        {
-            targeter_radius hitfunc(&you, LOS_NO_TRANS);
-
-            if (stop_attack_prompt(hitfunc, "attack",
-                                   [] (const actor *m)
-                                   {
-                                       return !m->res_torment();
-                                   },
-                                   nullptr, defender->as_monster()))
-            {
-                cancel_attack = true;
-                return false;
-            }
-        }
-        else if (weapon && is_unrandom_artefact(*weapon, UNRAND_ARC_BLADE)
-                 && you.can_see(*defender))
-        {
-            vector<const actor *> exclude;
-            if (!safe_discharge(defender->pos(), exclude))
-            {
-                cancel_attack = true;
-                return false;
-            }
-        }
-        else if (weapon && is_unrandom_artefact(*weapon, UNRAND_POWER)
-                 && you.can_see(*defender))
-        {
-            targeter_beam hitfunc(&you, 4, ZAP_SWORD_BEAM, 100, 0, 0);
-            hitfunc.beam.aimed_at_spot = false;
-            hitfunc.set_aim(defender->pos());
-
-            if (stop_attack_prompt(hitfunc, "attack",
-                                   [](const actor *act)
-                                   {
-                                       return !god_protects(act->as_monster());
-                                   }, nullptr, defender->as_monster()))
-            {
-                cancel_attack = true;
-                return false;
-            }
-        }
-        else if (!cleave_targets.empty())
-        {
-            targeter_cleave hitfunc(attacker, defender->pos());
-            if (stop_attack_prompt(hitfunc, "attack"))
-            {
-                cancel_attack = true;
-                return false;
-            }
-        }
-        else if (stop_attack_prompt(defender->as_monster(), false,
-                                    attack_position))
-        {
-            cancel_attack = true;
-            return false;
-        }
-    }
-
+        
+        unrand_art_handle();
+     
+    }    
     if (attacker->is_player())
     {
         // Set delay now that we know the attack won't be cancelled.

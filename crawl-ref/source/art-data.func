@@ -1,0 +1,155 @@
+/**
+ * @file
+ * @brief melee_attack class and associated melee_attack methods
+ */
+
+#include "AppHdr.h"
+
+#include "melee-attack.h"
+
+#include <algorithm>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+
+#include "areas.h"
+#include "art-enum.h"
+#include "attitude-change.h"
+#include "bloodspatter.h"
+#include "chardump.h"
+#include "cloud.h"
+#include "delay.h"
+#include "english.h"
+#include "env.h"
+#include "exercise.h"
+#include "fineff.h"
+#include "god-conduct.h"
+#include "god-item.h"
+#include "god-passive.h" // passive_t::convert_orcs
+#include "hints.h"
+#include "item-prop.h"
+#include "mapdef.h"
+#include "message.h"
+#include "mon-behv.h"
+#include "mon-poly.h"
+#include "mon-tentacle.h"
+#include "religion.h"
+#include "shout.h"
+#include "spl-damage.h"
+#include "state.h"
+#include "stepdown.h"
+#include "stringutil.h"
+#include "tag-version.h"
+#include "target.h"
+#include "terrain.h"
+#include "transform.h"
+#include "traps.h"
+#include "unwind.h"
+#include "view.h"
+#include "xom.h"
+
+#ifdef NOTE_DEBUG_CHAOS_BRAND
+    #define NOTE_DEBUG_CHAOS_EFFECTS
+#endif
+
+#ifdef NOTE_DEBUG_CHAOS_EFFECTS
+    #include "notes.h"
+#endif
+
+
+bool art-data::unrand_art_handle()
+{
+  if (weapon && is_unrandom_artefact(*weapon, UNRAND_DEVASTATOR)
+            && you.can_see(*defender))
+        {
+
+            targeter_smite hitfunc(attacker, 1, 1, 1, false);
+            hitfunc.set_aim(defender->pos());
+
+            if (stop_attack_prompt(hitfunc, "attack", nullptr, nullptr,
+                                   defender->as_monster()))
+            {
+                cancel_attack = true;
+                return false;
+            }
+        }
+        else if (weapon &&
+                ((is_unrandom_artefact(*weapon, UNRAND_SINGING_SWORD)
+                  && !silenced(you.pos()))
+                 || is_unrandom_artefact(*weapon, UNRAND_VARIABILITY))
+                 && you.can_see(*defender))
+        {
+            targeter_radius hitfunc(&you, LOS_NO_TRANS);
+
+            if (stop_attack_prompt(hitfunc, "attack",
+                                   [](const actor *act)
+                                   {
+                                       return !god_protects(act->as_monster());
+                                   }, nullptr, defender->as_monster()))
+            {
+                cancel_attack = true;
+                return false;
+            }
+        }
+        else if (weapon && is_unrandom_artefact(*weapon, UNRAND_TORMENT)
+                 && you.can_see(*defender))
+        {
+            targeter_radius hitfunc(&you, LOS_NO_TRANS);
+
+            if (stop_attack_prompt(hitfunc, "attack",
+                                   [] (const actor *m)
+                                   {
+                                       return !m->res_torment();
+                                   },
+                                   nullptr, defender->as_monster()))
+            {
+                cancel_attack = true;
+                return false;
+            }
+        }
+        else if (weapon && is_unrandom_artefact(*weapon, UNRAND_ARC_BLADE)
+                 && you.can_see(*defender))
+        {
+            vector<const actor *> exclude;
+            if (!safe_discharge(defender->pos(), exclude))
+            {
+                cancel_attack = true;
+                return false;
+            }
+        }
+        else if (weapon && is_unrandom_artefact(*weapon, UNRAND_POWER)
+                 && you.can_see(*defender))
+        {
+            targeter_beam hitfunc(&you, 4, ZAP_SWORD_BEAM, 100, 0, 0);
+            hitfunc.beam.aimed_at_spot = false;
+            hitfunc.set_aim(defender->pos());
+
+            if (stop_attack_prompt(hitfunc, "attack",
+                                   [](const actor *act)
+                                   {
+                                       return !god_protects(act->as_monster());
+                                   }, nullptr, defender->as_monster()))
+            {
+                cancel_attack = true;
+                return false;
+            }
+        }
+        
+        
+        
+        else if (!cleave_targets.empty())
+        {
+            targeter_cleave hitfunc(attacker, defender->pos());
+            if (stop_attack_prompt(hitfunc, "attack"))
+            {
+                cancel_attack = true;
+                return false;
+            }
+        }
+        else if (stop_attack_prompt(defender->as_monster(), false,
+                                    attack_position))
+        {
+            cancel_attack = true;
+            return false;
+        }
+}        
